@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Kazı Koordinat Oyunu</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; font-size: 16px; }
+    #game { background: white; padding: 20px; border-radius: 15px; max-width: 100%; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .header { text-align: center; margin-bottom: 20px; color: #333; }
+    .header h1 { margin: 0; font-size: 24px; color: #667eea; }
+    .score { background: #e8f5e8; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; font-weight: bold; color: #2d5a2d; }
+    .question { font-size: 18px; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.5; color: #333; background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #667eea; }
+    input { width: 100%; padding: 15px; font-size: 18px; margin: 15px 0; border: 2px solid #e0e0e0; border-radius: 10px; background: #fafafa; transition: all 0.3s ease; }
+    input:focus { outline: none; border-color: #667eea; background: white; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    button { width: 100%; padding: 15px; font-size: 18px; margin: 10px 0; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; min-height: 44px; }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+    #result { margin-top: 20px; font-weight: bold; text-align: center; padding: 15px; border-radius: 10px; font-size: 16px; }
+    #mapCanvas { width: 100%; height: auto; max-width: 350px; display: block; margin: 20px auto; border: 3px solid #333; border-radius: 10px; background: #f8f9fa; }
+    .button-group { display: flex; gap: 10px; margin: 15px 0; }
+    .button-group button { flex: 1; margin: 0; }
+    @media (max-width: 768px) { body { padding: 5px; font-size: 14px; } #game { padding: 15px; margin: 5px; } .question { font-size: 16px; padding: 12px; } input, button { padding: 12px; font-size: 16px; } .header h1 { font-size: 20px; } #mapCanvas { max-width: 300px; } }
+    @media (max-width: 480px) { .button-group { flex-direction: column; } .question { font-size: 14px; padding: 10px; } input, button { padding: 10px; font-size: 14px; } }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div class="header">
+      <h1>🔍 Kazı Koordinat Oyunu</h1>
+      <div class="score" id="scoreDisplay">Skor: 0/0</div>
+    </div>
+    <div class="question" id="question">Yükleniyor...</div>
+    <input type="text" id="answer" placeholder="Cevapları virgülle ayır be ya" autocomplete="off">
+    <div class="button-group">
+      <button class="btn-primary" id="checkBtn">✅ Kontrol Et</button>
+      <button class="btn-secondary" id="newBtn">🔄 Yeni Soru</button>
+    </div>
+    <div id="result"></div>
+    <canvas id="mapCanvas" width="400" height="400"></canvas>
+  </div>
+  <script>
+    let currentAnswer = [], currentCoords = [], score = 0, totalQuestions = 0;
+    const katsayi = [0.05,0.15,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95];
+    const buluntular = [
+      {ad:'Ağırşak',tur:'tek'},{ad:'Kemik Sap',tur:'tek'},{ad:'Taş Balta',tur:'tek'},
+      {ad:'Ocak Tabanı',tur:'dort'},{ad:'Yapı Dışı 1',tur:'dort'},{ad:'Yapı İçi 2',tur:'dort'}
+    ];
+    function randomMiraDegeri(min=0,max=5){const t=Math.floor(Math.random()*(max-min))+min;const o=katsayi[Math.floor(Math.random()*katsayi.length)];return(t+o).toFixed(2);}
+    function drawMap(coords){const c=document.getElementById('mapCanvas');if(!c)return;const x=c.getContext('2d');if(!x)return;x.clearRect(0,0,c.width,c.height);const s=40,o=0.5;x.strokeStyle='#e0e0e0';x.lineWidth=1;for(let i=0;i<=10;i++){x.beginPath();x.moveTo(20+i*s,20);x.lineTo(20+i*s,380);x.stroke();x.beginPath();x.moveTo(20,20+i*s);x.lineTo(380,20+i*s);x.stroke();}x.strokeStyle='#333';x.lineWidth=3;x.strokeRect(20,20,360,360);if(coords.length===2){x.fillStyle='#ff4757';x.strokeStyle='#ff4757';const a=parseFloat(coords[0]),b=parseFloat(coords[1]);x.lineWidth=2;x.beginPath();x.moveTo(20+(a-o)*s,380);x.lineTo(20+(a-o)*s,380-(b-o)*s);x.lineTo(20,380-(b-o)*s);x.stroke();x.beginPath();x.arc(20+(a-o)*s,380-(b-o)*s,8,0,2*Math.PI);x.fill();}else if(coords.length===4){x.strokeStyle='#3742fa';x.fillStyle='rgba(55,66,250,0.1)';const a=Math.min(coords[2],coords[3]),b=Math.max(coords[2],coords[3]),d=Math.min(coords[0],coords[1]),e=Math.max(coords[0],coords[1]);x.fillRect(20+(a-o)*s,380-(e-o)*s,(b-a)*s,(e-d)*s);x.strokeRect(20+(a-o)*s,380-(e-o)*s,(b-a)*s,(e-d)*s);}}
+    function updateScore(){const e=document.getElementById('scoreDisplay');if(e)e.textContent=`Skor: ${score}/${totalQuestions}`;}
+    function newQuestion(){const s=buluntular[Math.floor(Math.random()*buluntular.length)];let q='';currentCoords=[];if(s.tur==='tek'){const d=Math.random()<0.5,mx=randomMiraDegeri(),my=randomMiraDegeri();let x,y,yonX,yonY;if(d){yonX='Doğu';yonY='Kuzey';x=(9.5-parseFloat(mx)).toFixed(2);y=(9.5-parseFloat(my)).toFixed(2);}else{yonX='Batı';yonY='Güney';x=(0.5+parseFloat(mx)).toFixed(2);y=(0.5+parseFloat(my)).toFixed(2);}currentAnswer=[x,y];currentCoords=[x,y];q=`${s.ad} bulundu. \nX ekseni için ${yonX} yönünden mira: ${mx} \nY ekseni için ${yonY} yönünden mira: ${my} \nKoordinatları sırayla yaz bakayım (X,Y):`;}else{const k=Math.random()<0.5;let d='',a=[];if(k){const g=randomMiraDegeri(0,5),K=randomMiraDegeri(0,5),G=Math.max(g,K),Y=Math.min(g,K);d+=`En Güney Mira (Kuzeyden alındı): ${G}\n`;d+=`En Kuzey Mira (Kuzeyden alındı): ${Y}\n`;a.push((9.5-parseFloat(G)).toFixed(2));a.push((9.5-parseFloat(Y)).toFixed(2));const b=randomMiraDegeri(0,5),B=randomMiraDegeri(0,5),D=Math.min(b,B),E=Math.max(b,B);d+=`En Batı Mira (Doğudan alındı): ${D}\n`;d+=`En Doğu Mira (Doğudan alındı): ${E}\n`;a.push((9.5-parseFloat(D)).toFixed(2));a.push((9.5-parseFloat(E)).toFixed(2));}else{const g=randomMiraDegeri(0,5),K=randomMiraDegeri(0,5),G=Math.min(g,K),Y=Math.max(g,K);d+=`En Güney Mira (Güneyden alındı): ${G}\n`;d+=`En Kuzey Mira (Güneyden alındı): ${Y}\n`;a.push((0.5+parseFloat(G)).toFixed(2));a.push((0.5+parseFloat(Y)).toFixed(2));const b=randomMiraDegeri(0,5),B=randomMiraDegeri(0,5),D=Math.min(b,B),E=Math.max(b,B);d+=`En Batı Mira (Batıdan alındı): ${D}\n`;d+=`En Doğu Mira (Batıdan alındı): ${E}\n`;a.push((0.5+parseFloat(D)).toFixed(2));a.push((0.5+parseFloat(E)).toFixed(2));}currentAnswer=a;currentCoords=a;q=`${s.ad} bulundu. 4 köşe koordinatlarını hesapla:\n${d}\nCevapları sırayla virgülle yaz:`;}const qe=document.getElementById('question');if(qe)qe.innerText=q;const re=document.getElementById('result');if(re)re.innerText='';const ae=document.getElementById('answer');if(ae)ae.value='';drawMap(currentCoords);}
+    function checkAnswer(){const u=document.getElementById('answer').value,r=document.getElementById('result');const ua=u.split(',').map(s=>parseFloat(s.trim()).toFixed(2)),ca=currentAnswer.map(n=>parseFloat(n).toFixed(2));if(ua.length!==ca.length){r.innerText=`Cevabı eksik/fazla girdin be ya.. Bilal abi görmesin bak! Doğrular: ${ca.join(' , ')}`;r.style.color='#ffa502';r.style.background='#fff3cd';r.style.border='1px solid #ffeaa7';return;}const ic=ua.every((v,i)=>v===ca[i]);if(ic){score++;r.innerText='🎉 Doğru be ya, çatır çatır hesapladın!';r.style.color='#00b894';r.style.background='#d4edda';r.style.border='1px solid #c3e6cb';}else{r.innerText=`❌ Yanlış be ya. Sezer hocaya bu değerleri mi vereceksin? Doğrular: ${ca.join(' , ')}`;r.style.color='#e17055';r.style.background='#f8d7da';r.style.border='1px solid #f5c6cb';}totalQuestions++;updateScore();drawMap(currentCoords);}
+    function initializeGame(){if(window._gameInit)return;window._gameInit=true;document.getElementById('checkBtn').onclick=checkAnswer;document.getElementById('newBtn').onclick=newQuestion;document.getElementById('answer').addEventListener('keypress',function(e){if(e.key==='Enter'){checkAnswer();}});newQuestion();}
+    if(document.readyState==='complete'||document.readyState==='interactive'){setTimeout(initializeGame,50);}else{window.addEventListener('DOMContentLoaded',function(){setTimeout(initializeGame,50);});}
+  </script>
+</body>
+</html>
